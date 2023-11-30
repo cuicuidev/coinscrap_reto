@@ -1,6 +1,7 @@
 from typing import Iterable
 
 import pandas as pd
+import plotly
 
 from . import metrics
 
@@ -17,7 +18,10 @@ class EvaluationStrategy:
     def __repr__(self) -> str:
         return self.__class__.__name__
     
-    def evaluate(self, population: pd.DataFrame, sample: pd.DataFrame) -> dict[str, float]:
+    def evaluate(self, population: pd.DataFrame, sample: pd.DataFrame) -> dict[str, dict[str, float]]:
+        pass
+
+    def _plot(self, results: pd.DataFrame) -> Iterable[plotly.graph_objs.Figure]:
         pass
 
 class DistributionComparisson(EvaluationStrategy):
@@ -42,7 +46,7 @@ class DistributionComparisson(EvaluationStrategy):
         if self.time_series_analytics:
             raise NotImplementedError("Cannot perform ``time_series_analytics`` as it's not implemented yet.")
 
-    def evaluate(self, population: pd.DataFrame, sample: pd.DataFrame) -> dict[str, float]:
+    def evaluate(self, population: pd.DataFrame, sample: pd.DataFrame) -> dict[str, dict[str, float]]:
 
         p_cat_df = population.select_dtypes(include=['object'])
         s_cat_df = sample.select_dtypes(include=['object'])
@@ -55,21 +59,25 @@ class DistributionComparisson(EvaluationStrategy):
         result = {**cat_eval, **num_eval}
         return result
     
-    def _eval_numeric_fields(self, population: pd.DataFrame, sample: pd.DataFrame) -> dict[str, float]:
+    def _eval_numeric_fields(self, population: pd.DataFrame, sample: pd.DataFrame) -> dict[str, dict[str, float]]:
         columns = population.columns
         result = {column : self._apply_kolmogorov_smirnov(population=population[column], sample=sample[column]) for column in columns}
         return result
 
-    def _eval_categoric_fields(self, population: pd.DataFrame, sample: pd.DataFrame) -> dict[str, float]:
+    def _eval_categoric_fields(self, population: pd.DataFrame, sample: pd.DataFrame) -> dict[str, dict[str, float]]:
         columns = population.columns
         result = {column : self._apply_chi_squared(population=population[column], sample=sample[column]) for column in columns}
         return result
 
     def _apply_kolmogorov_smirnov(self, population: pd.Series, sample: pd.Series) -> Iterable[float]:
-        return metrics.KolmogorovSmirnov().measure(population=population, sample=sample)
+        result = {}
+        result['ks_score'], result['p_value'] = metrics.KolmogorovSmirnov().measure(population=population, sample=sample)
+        return result
     
     def _apply_chi_squared(self, population: pd.Series, sample: pd.Series) -> Iterable[float]:
-        return metrics.ChiSquaredGoodnessOfFit().measure(population=population, sample=sample)
+        result = {}
+        result['chi_squared'], result['p_value'] = metrics.ChiSquaredGoodnessOfFit().measure(population=population, sample=sample)
+        return result
     
-    def _apply_random_value_assignment(self, population: pd.DataFrame, sample: pd.DataFrame) -> Iterable[float]:
-        return metrics.RandomValueAssignment().measure(population=population, sample=sample)
+    def _plot(self, results: pd.DataFrame) -> Iterable[plotly.graph_objs.Figure]:
+        pass
