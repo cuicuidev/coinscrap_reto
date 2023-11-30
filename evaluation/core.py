@@ -6,6 +6,12 @@ import plotly.express as px
 from . import sampling, evaluations
 
 class Evaluation:
+
+    """
+    This class recieves a pandas ``DataFrame`` object as ``df``, an iterable of ``SamplingStrategy`` objects as ``sampling_strategies`` and an ``evaluation_strategy`` as a 
+    ``EvaluationStrategy`` object. Once instantiated, it allowes to use methods such as ``.run()`` and ``.plot()`` to evaluate all the sampling strategies 
+    using the evaluation strategy, across all sample sizes between 1 and the size of ``df``.
+    """
     
     def __init__(self, df: pd.DataFrame, sampling_strategies: Iterable[sampling.SamplingStrategy], evaluation_strategy: evaluations.EvaluationStrategy) -> None:
         self.df = df
