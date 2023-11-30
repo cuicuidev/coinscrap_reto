@@ -37,7 +37,7 @@ class Evaluation:
         self.eval = result
         return result
     
-    def plot(self):
+    def plot(self, p_values: bool = False):
 
         """
         Creates a plotly ``Figure`` with the evaluation stored at ``self.eval``. If ``self.eval`` is ``None``, then the ``self.run()`` method is called with it's default values
@@ -46,8 +46,16 @@ class Evaluation:
 
         if self.eval is None:
             self.run()
-        fig = px.line(self.eval, x='SampleSize', y=self.eval.drop(['SampleSize', 'SamplingStrategy'], axis=1).columns, color='SamplingStrategy')
-        return fig
+
+        metrics_df = self.eval.drop(['SampleSize', 'SamplingStrategy'], axis=1).applymap(lambda x: x[0])
+        metrics_df = pd.concat([self.eval[['SampleSize', 'SamplingStrategy']], metrics_df], axis=1)
+        metrics_fig = px.line(metrics_df, x='SampleSize', y=metrics_df.drop(['SampleSize', 'SamplingStrategy'], axis=1).columns, color='SamplingStrategy')
+        yield metrics_fig
+
+        p_values_df = self.eval.drop(['SampleSize', 'SamplingStrategy'], axis=1).applymap(lambda x: x[1])
+        p_values_df = pd.concat([self.eval[['SampleSize', 'SamplingStrategy']], p_values_df], axis=1)
+        p_values_fig = px.line(p_values_df, x='SampleSize', y=p_values_df.drop(['SampleSize', 'SamplingStrategy'], axis=1).columns, color='SamplingStrategy')
+        yield p_values_fig
     
     def _evaluate_sampling_strategy(self, strategy: sampling.SamplingStrategy, step: int, random_state: Optional[int | float]) -> pd.DataFrame:
 

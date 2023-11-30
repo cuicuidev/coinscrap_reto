@@ -47,3 +47,25 @@ class KolmogorovSmirnov(MetricStrategy):
 
         statistic, p = stats.ks_2samp(data1 = sample, data2 = population)
         return statistic, p
+    
+class ChiSquaredGoodnessOfFit(MetricStrategy):
+
+    def measure(self, population: pd.Series, sample: pd.Series) -> Iterable[float]:
+        return self._apply_chi_squared(population=population, sample=sample)
+    
+    def _apply_chi_squared(
+            self,
+            population: pd.Series,
+            sample = pd.Series,
+        ) -> Iterable[float]:
+
+        population_counts = population.value_counts()
+        sample_counts = sample.value_counts()
+
+        contingency_table = pd.DataFrame({'Population': population_counts, 'Sample': sample_counts})
+
+        contingency_table = contingency_table.fillna(0)
+
+        statistic, p, _, _ = stats.chi2_contingency(contingency_table)
+
+        return statistic, p
