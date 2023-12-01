@@ -1,7 +1,6 @@
 from typing import Iterable, Optional
 
 import pandas as pd
-import plotly.express as px
 
 from . import sampling, evaluations
 

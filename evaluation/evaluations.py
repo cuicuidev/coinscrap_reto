@@ -1,9 +1,20 @@
-from typing import Iterable
+from typing import Iterable, Generator
 
 import pandas as pd
+import numpy as np
 import plotly
+import plotly.express as px
 
 from . import metrics
+
+def get_metric(var, metric: metrics.MetricStrategy):
+    if isinstance(var, dict):
+        ks = var.get(metric.__repr__())
+        if ks:
+            return var
+        else:
+            return np.nan
+    return var
 
 class EvaluationStrategy:
 
@@ -71,13 +82,25 @@ class DistributionComparisson(EvaluationStrategy):
 
     def _apply_kolmogorov_smirnov(self, population: pd.Series, sample: pd.Series) -> Iterable[float]:
         result = {}
-        result['ks_score'], result['p_value'] = metrics.KolmogorovSmirnov().measure(population=population, sample=sample)
+        result[metrics.KolmogorovSmirnov().__repr__()], result['p_value'] = metrics.KolmogorovSmirnov().measure(population=population, sample=sample)
         return result
     
     def _apply_chi_squared(self, population: pd.Series, sample: pd.Series) -> Iterable[float]:
         result = {}
-        result['chi_squared'], result['p_value'] = metrics.ChiSquaredGoodnessOfFit().measure(population=population, sample=sample)
+        result[metrics.ChiSquaredGoodnessOfFit().__repr__()], result['p_value'] = metrics.ChiSquaredGoodnessOfFit().measure(population=population, sample=sample)
         return result
+
+    def _get_metric_dfs(self, df: pd.DataFrame, metric: metrics.MetricStrategy) -> pd.DataFrame:
+        df = df.map(get_metric, metric=metric)
+        df = df.dropna(axis=1)
+        m_df = df.map(lambda x: x.get(metric.__repr__()) if isinstance(x, dict) else x)
+        p_df = df.map(lambda x: x.get('p_value') if isinstance(x, dict) else x)
+        return m_df, p_df
     
     def _plot(self, results: pd.DataFrame) -> Iterable[plotly.graph_objs.Figure]:
-        pass
+        chi_m, chi_p = self._get_metric_dfs(results, metric=metrics.ChiSquaredGoodnessOfFit())
+        ks_m, ks_p = self._get_metric_dfs(results, metric=metrics.KolmogorovSmirnov())
+        yield px.line(chi_m, x='SampleSize', y=chi_m.drop(['SampleSize', 'SamplingStrategy'], axis=1).columns, color='SamplingStrategy', title=metrics.ChiSquaredGoodnessOfFit().__repr__() + " statistic")
+        yield px.line(chi_p, x='SampleSize', y=chi_p.drop(['SampleSize', 'SamplingStrategy'], axis=1).columns, color='SamplingStrategy', title=metrics.ChiSquaredGoodnessOfFit().__repr__() + "'s p-value")
+        yield px.line(ks_m, x='SampleSize', y=ks_m.drop(['SampleSize', 'SamplingStrategy'], axis=1).columns, color='SamplingStrategy', title=metrics.KolmogorovSmirnov().__repr__() + " statistic")
+        yield px.line(ks_p, x='SampleSize', y=ks_p.drop(['SampleSize', 'SamplingStrategy'], axis=1).columns, color='SamplingStrategy', title=metrics.KolmogorovSmirnov().__repr__() + "'s p-value")
