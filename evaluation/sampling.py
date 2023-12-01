@@ -42,3 +42,17 @@ class StratifiedRandomSampling(SamplingStrategy):
             random_sample = remaining_df.sample(n-len(sample), random_state=42)
             sample = pd.concat([sample, random_sample]).drop('_merge', axis=1)
         return sample
+    
+class ClusterSampling(SamplingStrategy):
+
+    """
+    What if we cluster the data and use the cluster column as a strata?
+    """
+
+    def __init__(self, n_clusters: int, cluster_data: Iterable[str]) -> None:
+        self.n_clusters = n_clusters
+        self.cluster_data = cluster_data
+
+    def sample(self, df: pd.DataFrame, n: int, random_state: int | float | None) -> pd.DataFrame:
+        s = df.sample(n=n, random_state=random_state)
+        return s # TODO: implement clustering
