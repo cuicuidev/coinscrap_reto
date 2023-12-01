@@ -98,9 +98,23 @@ class DistributionComparisson(EvaluationStrategy):
         return m_df, p_df
     
     def _plot(self, results: pd.DataFrame) -> Iterable[plotly.graph_objs.Figure]:
+        x = 'SampleSize'
+        color = 'SamplingStrategy'
+
         chi_m, chi_p = self._get_metric_dfs(results, metric=metrics.ChiSquaredGoodnessOfFit())
+        title =metrics.ChiSquaredGoodnessOfFit().__repr__()
+
+        y = list(chi_m.drop([x, color], axis=1).columns)
+        yield px.line(chi_m, x=x, y=y, color=color, title=title + " statistic")
+        
+        y = list(chi_p.drop([x, color], axis=1).columns)
+        yield px.line(chi_p, x=x, y=y, color=color, title=title + "'s p-value")
+
         ks_m, ks_p = self._get_metric_dfs(results, metric=metrics.KolmogorovSmirnov())
-        yield px.line(chi_m, x='SampleSize', y=chi_m.drop(['SampleSize', 'SamplingStrategy'], axis=1).columns, color='SamplingStrategy', title=metrics.ChiSquaredGoodnessOfFit().__repr__() + " statistic")
-        yield px.line(chi_p, x='SampleSize', y=chi_p.drop(['SampleSize', 'SamplingStrategy'], axis=1).columns, color='SamplingStrategy', title=metrics.ChiSquaredGoodnessOfFit().__repr__() + "'s p-value")
-        yield px.line(ks_m, x='SampleSize', y=ks_m.drop(['SampleSize', 'SamplingStrategy'], axis=1).columns, color='SamplingStrategy', title=metrics.KolmogorovSmirnov().__repr__() + " statistic")
-        yield px.line(ks_p, x='SampleSize', y=ks_p.drop(['SampleSize', 'SamplingStrategy'], axis=1).columns, color='SamplingStrategy', title=metrics.KolmogorovSmirnov().__repr__() + "'s p-value")
+        title =metrics.KolmogorovSmirnov().__repr__()
+
+        y = list(ks_m.drop([x, color], axis=1).columns)
+        yield px.line(ks_m, x=x, y=y, color=color, title=title + " statistic")
+        
+        y = list(ks_p.drop([x, color], axis=1).columns)
+        yield px.line(ks_p, x=x, y=y, color=color, title=title + "'s p-value")

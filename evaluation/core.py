@@ -32,7 +32,7 @@ class Evaluation:
             result = self._evaluate_sampling_strategy(strategy=strategy, step = step, random_state = random_state)
             results.append(result)
 
-        result = pd.concat(results, axis=1)
+        result = pd.concat(results)
         self.eval = result
         return result
     
@@ -53,7 +53,7 @@ class Evaluation:
         results = {col : [] for col in self.df.columns}
         results['SampleSize']: Iterable[int] = []
 
-        for n in range(1, population_size, step):
+        for n in range(step, population_size, step):
             sample = self._apply_sampling_strategy(strategy=strategy, n=n, random_state=random_state)
             result = self._evaluate_sample(sample=sample)
 

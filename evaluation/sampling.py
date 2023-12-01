@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Iterable
 import pandas as pd
 
 class SamplingStrategy:
@@ -25,14 +25,20 @@ class StratifiedRandomSampling(SamplingStrategy):
     We should see improvements in chi squared evals when implementing this kind of sampling.
     """
 
+    def __init__(self, strata: Iterable[str]) -> None:
+        self.strata = strata
+
     def sample(self, df: pd.DataFrame, n: int, random_state: int | float | None) -> pd.DataFrame:
-        cat_columns = df.select_dtypes(include=['object']).columns
 
-        print(cat_columns)
-
-        groups = df.groupby(list(cat_columns), group_keys=False)
-        proportions = groups.size() / len(df)
-        sample_sizes = (proportions * n).astype(int)
-        return sample_sizes # TODO: FIX THIS :(
-        sample = groups.apply(lambda x: x.sample(n=sample_sizes.loc[(x.name[0], x.name[1])], random_state=random_state))
+        def take_sample(group: pd.DataFrame) -> pd.DataFrame:
+            proportion = len(group) / len(df)
+            stratum_sample_size = round(n * proportion)
+            # print(stratum_sample_size)
+            return group.sample(min(len(group), stratum_sample_size), random_state=random_state)
+        
+        sample: pd.DataFrame = df.groupby(self.strata, group_keys=False, as_index=False).apply(take_sample)
+        if len(sample) < n:
+            remaining_df = df.merge(sample, indicator=True, how='outer').loc[lambda x: x['_merge'] == 'left_only']
+            random_sample = remaining_df.sample(n-len(sample), random_state=42)
+            sample = pd.concat([sample, random_sample]).drop('_merge', axis=1)
         return sample
