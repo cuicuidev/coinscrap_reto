@@ -51,7 +51,7 @@ class ClusterSampling(SamplingStrategy):
     """
 
     def __init__(self, df: pd.DataFrame, n_clusters: int, fields: Iterable[str], random_state: int | float | None = None) -> None:
-        self.df = df
+        self.df = df.copy()
         self.n_clusters = n_clusters
         self.fields = fields
 
