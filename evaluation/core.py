@@ -62,7 +62,10 @@ class Evaluation:
             for column, score in result.items():
                 results[column].append(score)
 
-        results['SamplingStrategy'] = [strategy.__repr__() for _ in range(len(list(results.values())[0]))]
+        if strategy.alias:
+            results['SamplingStrategy'] = [strategy.__repr__() + strategy.alias for _ in range(len(list(results.values())[0]))]
+        else:
+            results['SamplingStrategy'] = [strategy.__repr__() for _ in range(len(list(results.values())[0]))]
 
         return pd.DataFrame(results)
     

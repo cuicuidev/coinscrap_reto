@@ -5,6 +5,9 @@ from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 
 class SamplingStrategy:
 
+    def __init__(self, alias: Optional[str] = None) -> None:
+        self.alias = alias
+
     def __repr__(self) -> str:
         return self.__class__.__name__
     
@@ -27,7 +30,8 @@ class StratifiedRandomSampling(SamplingStrategy):
     We should see improvements in chi squared evals when implementing this kind of sampling.
     """
 
-    def __init__(self, strata: Iterable[str]) -> None:
+    def __init__(self, strata: Iterable[str], alias: Optional[str] = None) -> None:
+        super().__init__(alias=alias)
         self.strata = strata
 
     def sample(self, df: pd.DataFrame, n: int, random_state: int | float | None) -> pd.DataFrame:
@@ -50,7 +54,8 @@ class ClusterSampling(SamplingStrategy):
     What if we cluster the data and use the cluster column as a strata?
     """
 
-    def __init__(self, df: pd.DataFrame, n_clusters: int, fields: Iterable[str], random_state: int | float | None = None) -> None:
+    def __init__(self, df: pd.DataFrame, n_clusters: int, fields: Iterable[str], random_state: Optional[int | float] = None, alias: Optional[str] = None) -> None:
+        super().__init__(alias=alias)
         self.df = df.copy()
         self.n_clusters = n_clusters
         self.fields = fields
