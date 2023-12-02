@@ -50,29 +50,30 @@ class ClusterSampling(SamplingStrategy):
     What if we cluster the data and use the cluster column as a strata?
     """
 
-    def __init__(self, n_clusters: int, fields: Iterable[str]) -> None:
+    def __init__(self, df: pd.DataFrame, n_clusters: int, fields: Iterable[str], random_state: int | float | None = None) -> None:
+        self.df = df
         self.n_clusters = n_clusters
         self.fields = fields
 
-    def sample(self, df: pd.DataFrame, n: int, random_state: int | float | None) -> pd.DataFrame:
-        df = df.copy()
-        kmeans = KMeans(n_clusters=self.n_clusters)
+        kmeans = KMeans(n_clusters=self.n_clusters, n_init='auto', random_state=random_state)
         scaler = MinMaxScaler()
-        cluster_data = df[self.fields]
-        X, encodings = self._encode(cluster_data)
+        cluster_data = self.df[self.fields]
+        X, _ = self._encode(cluster_data)
         X = scaler.fit_transform(X)
         kmeans.fit(X)
-        df['cluster'] = kmeans.labels_
+
+        self.df['cluster'] = kmeans.labels_
+        self.labels = kmeans.labels_
+
+    def sample(self, df: pd.DataFrame, n: int, random_state: int | float | None) -> pd.DataFrame:
         
-        sample: pd.DataFrame = df.groupby('cluster', group_keys=False, as_index=False).apply(self._sample_group, df_size= len(df), total_sample_size=n, random_state=random_state)
+        sample: pd.DataFrame = self.df.groupby('cluster', group_keys=False, as_index=False).apply(self._sample_group, df_size= len(self.df), total_sample_size=n, random_state=random_state)
         if len(sample) < n:
-            remaining_df = df.merge(sample, indicator=True, how='outer').loc[lambda x: x['_merge'] == 'left_only']
+            remaining_df = self.df.merge(sample, indicator=True, how='outer').loc[lambda x: x['_merge'] == 'left_only']
             random_sample = remaining_df.sample(n-len(sample), random_state=42)
-            sample = pd.concat([sample, random_sample]).drop(['_merge', 'cluster'], axis=1)
+            sample = pd.concat([sample, random_sample]).drop(['_merge'], axis=1)
 
-        # sample = self._decode(sample, encodings)
-
-        return sample
+        return sample.drop('cluster', axis=1)
     
     def _encode(self, df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
         encoded_df = df.copy()
