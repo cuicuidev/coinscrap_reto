@@ -6,23 +6,38 @@ from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 class SamplingStrategy:
 
     def __init__(self, alias: Optional[str] = None) -> None:
+        
         self.alias = alias
 
+
     def __repr__(self) -> str:
+
         return self.__class__.__name__
     
+    
     def sample(self, df: pd.DataFrame, n: int, random_state: Optional[int | float]) -> pd.DataFrame:
+
+        """
+        ## Main interface for a sampling strategy.
+        - Must always receive a ``df`` as a Pandas DataFrame instance, ``n`` as a float (being the sample size), and a ``random_state`` as an optional numeric parameter, 
+        helpful to supress the random number generator underlying in some of the sampling algorithms.
+        - Must always return a Pandas DataFrame instance.
+        """
+
         pass
+
 
 class RandomSampling(SamplingStrategy):
 
     """
-    ## This class is purely for interface testing.
+    ## This is the control sampling method. A good choice, but surely to be improved upon.
     """
 
     def sample(self, df: pd.DataFrame, n: int, random_state: Optional[int | float]) -> pd.DataFrame:
+
         s = df.sample(n=n, random_state=random_state)
         return s
+    
     
 class StratifiedRandomSampling(SamplingStrategy):
 
@@ -31,8 +46,10 @@ class StratifiedRandomSampling(SamplingStrategy):
     """
 
     def __init__(self, strata: Iterable[str], alias: Optional[str] = None) -> None:
+
         super().__init__(alias=alias)
         self.strata = strata
+
 
     def sample(self, df: pd.DataFrame, n: int, random_state: int | float | None) -> pd.DataFrame:
 
@@ -42,11 +59,14 @@ class StratifiedRandomSampling(SamplingStrategy):
             return group.sample(min(len(group), stratum_sample_size), random_state=random_state)
         
         sample: pd.DataFrame = df.groupby(self.strata, group_keys=False, as_index=False).apply(take_sample)
+
         if len(sample) < n:
             remaining_df = df.merge(sample, indicator=True, how='outer').loc[lambda x: x['_merge'] == 'left_only']
             random_sample = remaining_df.sample(n-len(sample), random_state=42)
             sample = pd.concat([sample, random_sample]).drop('_merge', axis=1)
+
         return sample
+    
     
 class ClusterSampling(SamplingStrategy):
 
@@ -55,6 +75,7 @@ class ClusterSampling(SamplingStrategy):
     """
 
     def __init__(self, df: pd.DataFrame, n_clusters: int, fields: Iterable[str], random_state: Optional[int | float] = None, alias: Optional[str] = None) -> None:
+
         super().__init__(alias=alias)
         self.df = df.copy()
         self.n_clusters = n_clusters
@@ -70,9 +91,11 @@ class ClusterSampling(SamplingStrategy):
         self.df['cluster'] = kmeans.labels_
         self.labels = kmeans.labels_
 
+
     def sample(self, df: pd.DataFrame, n: int, random_state: int | float | None) -> pd.DataFrame:
         
         sample: pd.DataFrame = self.df.groupby('cluster', group_keys=False, as_index=False).apply(self._sample_group, df_size= len(self.df), total_sample_size=n, random_state=random_state)
+
         if len(sample) < n:
             remaining_df = self.df.merge(sample, indicator=True, how='outer').loc[lambda x: x['_merge'] == 'left_only']
             random_sample = remaining_df.sample(n-len(sample), random_state=42)
@@ -80,7 +103,9 @@ class ClusterSampling(SamplingStrategy):
 
         return sample.drop('cluster', axis=1)
     
+    
     def _encode(self, df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
+
         encoded_df = df.copy()
         encodings = {}
         for column in encoded_df.columns:
@@ -88,15 +113,21 @@ class ClusterSampling(SamplingStrategy):
                 encoder = LabelEncoder()
                 encoded_df[column] = encoder.fit_transform(encoded_df[column])
                 encodings[column] = encoder
+
         return encoded_df, encodings
     
+    
     def _decode(self, df: pd.DataFrame, encodings: dict) -> pd.DataFrame:
+
         decoded_df = df.copy()
         for column, encoder in encodings.items():
             decoded_df[column] = encoder.inverse_transform(decoded_df[column])
+            
         return decoded_df
     
+    
     def _sample_group(self, group: pd.DataFrame, df_size: int, total_sample_size: int, random_state: int | float | None = None) -> pd.DataFrame:
+
         proportion = len(group) / df_size
         stratum_sample_size = round(total_sample_size * proportion)
         return group.sample(min(len(group), stratum_sample_size), random_state=random_state)

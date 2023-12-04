@@ -37,6 +37,11 @@ class Evaluation:
         return result
     
     def plot(self) -> None:
+
+        """
+        Displays all the plots of the evaluation strategy.
+        """
+
         figures = self.evaluation_strategy._plot(results=self.eval)
         
         for fig in figures:
