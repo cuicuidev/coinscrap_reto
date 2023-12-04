@@ -10,13 +10,13 @@ from . import metrics
 def get_metric(var, metric: metrics.MetricStrategy):
 
     """
-    Takes in a variable and a metric strategy. Returns the variable if it holds a metric, else returns a numpy nan object.
+    Takes in a variable and a metric strategy. Returns the variable if it holds a metric or if it's not a dictionary type, else returns a numpy nan object.
     """
 
     if isinstance(var, dict):
-        metric = var.get(metric.__repr__())
-        return var if metric else np.nan
-        
+        m = var.get(metric.__repr__())
+        return var if m else np.nan
+
     return var
 
 class EvaluationStrategy:
